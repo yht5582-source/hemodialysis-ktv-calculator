@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kt/V 達標計算器</title>
+    <meta
+      name="description"
+      content="依血液透析處方參數估算 Kt/V 並判讀是否達標。"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="input-panel" aria-labelledby="page-title">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">血液透析處方估算</p>
+            <h1 id="page-title">Kt/V 達標計算器</h1>
+          </div>
+          <div class="target-chip">
+            <span>目標</span>
+            <strong>1.4</strong>
+          </div>
+        </div>
+
+        <form class="fields" id="calculator-form">
+          <label>
+            <span>體重 kg</span>
+            <input id="weight" min="1" type="number" value="70" />
+          </label>
+
+          <label>
+            <span>人工腎臟型號</span>
+            <input id="dialyzer" type="text" value="人工腎臟 1.8 m²" />
+          </label>
+
+          <div class="field-group">
+            <span>常用膜面積</span>
+            <div class="preset-grid">
+              <button data-area="1.4" data-efficiency="standard" type="button">
+                1.4 m²
+              </button>
+              <button data-area="1.6" data-efficiency="standard" type="button">
+                1.6 m²
+              </button>
+              <button data-area="1.8" data-efficiency="high" type="button">
+                1.8 m²
+              </button>
+              <button data-area="2.1" data-efficiency="high" type="button">
+                2.1 m²
+              </button>
+            </div>
+          </div>
+
+          <label>
+            <span>膜面積 m²</span>
+            <input
+              id="surface-area"
+              min="0.1"
+              step="0.1"
+              type="number"
+              value="1.8"
+            />
+          </label>
+
+          <div class="field-group">
+            <span>膜效率</span>
+            <div class="segment-grid" id="efficiency-options">
+              <button
+                data-efficiency="standard"
+                title="一般高通量設定"
+                type="button"
+              >
+                標準
+              </button>
+              <button
+                class="selected"
+                data-efficiency="high"
+                title="較高尿素清除能力"
+                type="button"
+              >
+                高效
+              </button>
+              <button
+                data-efficiency="low"
+                title="較低清除效率估算"
+                type="button"
+              >
+                保守
+              </button>
+            </div>
+          </div>
+
+          <div class="two-column">
+            <label>
+              <span>血流速 mL/min</span>
+              <input id="blood-flow" min="1" type="number" value="300" />
+            </label>
+
+            <label>
+              <span>透析液流速 mL/min</span>
+              <input id="dialysate-flow" min="1" type="number" value="500" />
+            </label>
+          </div>
+
+          <label>
+            <span>透析時間 小時</span>
+            <input
+              id="dialysis-time"
+              min="0.25"
+              step="0.25"
+              type="number"
+              value="4"
+            />
+          </label>
+        </form>
+      </section>
+
+      <section class="result-column" aria-live="polite">
+        <section class="status-panel good" id="status-panel">
+          <div class="status-layout">
+            <div>
+              <p class="dialyzer-name" id="dialyzer-name">人工腎臟 1.8 m²</p>
+              <div class="ktv-row">
+                <output id="ktv-value">1.53</output>
+                <div>
+                  <p class="status-label" id="status-label">達標</p>
+                  <p class="status-detail" id="status-detail">
+                    已達成人每週三次血液透析常用目標值。
+                  </p>
+                </div>
+              </div>
+
+              <div class="gauge" aria-hidden="true">
+                <div class="gauge-fill" id="gauge-fill"></div>
+                <span class="minimum-marker"></span>
+                <span class="target-marker"></span>
+              </div>
+              <div class="scale">
+                <span>0</span>
+                <span>最低 1.2</span>
+                <span>目標 1.4</span>
+                <span>2.0</span>
+              </div>
+            </div>
+
+            <div class="dialysis-visual" aria-hidden="true">
+              <div class="dialysis-stream dialysis-stream-blood"></div>
+              <div class="dialysis-core">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="dialysis-stream dialysis-stream-fluid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="metric-panel" aria-label="估算結果">
+          <div class="metric">
+            <span>估算尿素清除率 K</span>
+            <strong id="clearance-value">258</strong>
+            <small>mL/min</small>
+          </div>
+          <div class="metric">
+            <span>分布體積 V</span>
+            <strong id="volume-value">40.6</strong>
+            <small>L</small>
+          </div>
+          <div class="metric">
+            <span>總清除量 Kt</span>
+            <strong id="kt-value">62.0</strong>
+            <small>L</small>
+          </div>
+          <div class="metric">
+            <span>估算 KoA</span>
+            <strong id="koa-value">972</strong>
+            <small>mL/min</small>
+          </div>
+        </section>
+
+        <section class="lower-grid">
+          <div class="info-panel">
+            <h2>達標差距</h2>
+            <dl>
+              <div>
+                <dt>目前治療時間</dt>
+                <dd id="current-time">4 小時 00 分</dd>
+              </div>
+              <div>
+                <dt>達目標約需時間</dt>
+                <dd id="required-time">3 小時 40 分</dd>
+              </div>
+              <div>
+                <dt id="extra-label">目標餘裕</dt>
+                <dd id="extra-time">20 分鐘</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="info-panel">
+            <h2>判讀基準</h2>
+            <p>成人每週三次血液透析常用判讀：spKt/V 目標 1.4，最低 1.2。</p>
+            <p>
+              本頁以 Kt/V = K x t / V 估算處方可能達成量；正式品質指標仍應以透析前後
+              BUN 的 spKt/V 及臨床狀況確認。
+            </p>
+            <p>
+              目前 V 以體重 x 0.58 估算，未納入殘餘腎功能、再循環、超濾量、中斷時間或抽血誤差。
+            </p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
