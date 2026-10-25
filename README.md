@@ -5,74 +5,35 @@
 [開啟線上計算器](https://yht5582-source.github.io/hemodialysis-ktv-calculator/)
 
 > [!IMPORTANT]
-> 本工具計算的是依處方參數推估的理論 Kt/V，**不是以透析前後 BUN 求得的實際 delivered spKt/V**。結果僅適合處方模擬、教學或初步比較，不得取代透析充分性檢驗、臨床判斷或個別化醫囑。
+> 處方模擬區計算的是依處方參數推估的理論 Kt/V，**不是以透析前後 BUN 求得的實際 delivered spKt/V**（實測值請用頁面下方的 BUN 計算區）。結果僅適合處方模擬、教學或初步比較，不得取代透析充分性檢驗、臨床判斷或個別化醫囑。
 
 ## 主要功能
 
-- 即時估算尿素清除率 `K`、分布體積 `V`、總清除量 `Kt` 與 `Kt/V`。
-- 提供 1.4、1.6、1.8 與 2.1 m² 常用膜面積快捷選項。
-- 可切換標準、高效與保守三種人工腎臟效率假設。
-- 依 `spKt/V 1.4` 目標與 `1.2` 最低值顯示達標狀態。
-- 推估達到目標所需的透析時間，以及目前處方的時間差距或餘裕。
-- 響應式版面，可於桌面、平板及手機瀏覽器使用。
+- **處方模擬**：由膜面積／效率（或已知 KoA）、Qb、Qd、血比容、時間估算尿素清除率 `K`，並算出 spKt/V、eKt/V、stdKt/V。
+- **分布體積 V**：體重 × 0.58，或 Watson 公式（性別、年齡、身高、體重）。
+- **依頻率判讀**：每週三次看單次 spKt/V（目標 1.4、最低 1.2）；每週 2 次或 ≥4 次改看 stdKt/V（目標 2.3、最低 2.1）。
+- **達標差距**：達目標所需時間、目前時間下所需 Qb。
+- **實測 spKt/V**：輸入透析前後 BUN、時間、脫水量、透析後體重，以 Daugirdas 第二代公式計算 spKt/V、URR、eKt/V。
+- 提示：Qb > Qd、導管高血流、脫水速率 >13 mL/kg/h、以體重法估算 V。
 - 所有計算都在瀏覽器本機完成，不會將輸入資料傳送至伺服器。
-
-## 輸入項目
-
-| 輸入 | 單位 | 預設值 | 說明 |
-| --- | --- | ---: | --- |
-| 體重 | kg | 70 | 用於估算尿素分布體積 |
-| 人工腎臟型號 | 文字 | 人工腎臟 1.8 m² | 僅作畫面標示，不影響計算 |
-| 膜面積 | m² | 1.8 | 用於估算 KoA |
-| 膜效率 | 類別 | 高效 | 決定每平方公尺的 KoA 假設值 |
-| 血流速 `Qb` | mL/min | 300 | 估算尿素清除率的血液流量 |
-| 透析液流速 `Qd` | mL/min | 500 | 估算尿素清除率的透析液流量 |
-| 透析時間 | 小時 | 4 | 計算總清除量與 Kt/V |
-
-數值欄位必須大於 0；輸入無效時，頁面會停止估算並顯示待輸入狀態。
 
 ## 計算方式
 
-### 1. 估算 KoA
+| 項目 | 公式 |
+| --- | --- |
+| 血液水流量 | `Qbw = Qb × [0.93 × (1 − Hct) + 0.72 × Hct]` |
+| KoA（估算） | `膜面積 × 460（標準）／540（高效）／380（保守）`；可改填已知 KoA |
+| 清除率 K（逆流） | `Z = Qbw/Qd`，`E = exp[KoA/Qbw × (1 − Z)]`，`K = Qbw × (E − 1)/(E − Z)`；`Qbw = Qd` 時 `K = Qbw × KoA/(Qbw + KoA)` |
+| V | `體重 × 0.58`，或 Watson：男 `2.447 − 0.09516×年齡 + 0.1074×身高 + 0.3362×體重`；女 `−2.097 + 0.1069×身高 + 0.2466×體重` |
+| 處方 spKt/V | `K × t ÷ V` |
+| eKt/V | `spKt/V × t/(t + Tp)`，Tp：AVF/AVG 30.7 分、導管 18.5 分（FHN 修正 Tattersall） |
+| stdKt/V | `S = [10080(1 − e^−eKt/V)/t] ÷ [(1 − e^−eKt/V)/eKt/V + 10080/(N·t) − 1]`，再除以 `1 − (0.74/N) × 每週脫水/V`（KDOQI 2015） |
+| 實測 spKt/V | `−ln(R − 0.008t) + (4 − 3.5R) × UF/W`（Daugirdas 1993） |
+| URR | `(1 − R) × 100%`，最低 65% |
 
-```text
-KoA = 膜面積 × 膜效率係數
-```
+判讀以四捨五入到兩位小數的數值為準（畫面顯示 1.40 即為達標），達標所需時間與 Qb 也用同一標準。
 
-| 膜效率 | 係數 |
-| --- | ---: |
-| 標準 | 460 |
-| 高效 | 540 |
-| 保守 | 380 |
-
-係數是本工具用於處方比較的簡化假設，不是特定人工腎臟廠牌的實測 KoA。實際效能應以產品資料、透析機設定與臨床量測為準。
-
-### 2. 估算尿素清除率 K
-
-工具以 `Qb`、`Qd` 與 `KoA` 套用逆流式人工腎臟清除模型，並將結果限制在 0 至 `min(Qb, Qd)` mL/min。
-
-### 3. 估算分布體積 V
-
-```text
-V（L）= 體重（kg）× 0.58
-```
-
-### 4. 計算 Kt/V
-
-```text
-Kt（L） = K（mL/min）× 透析時間（min）÷ 1000
-Kt/V    = Kt（L）÷ V（L）
-```
-
-### 5. 判讀門檻
-
-| 估算 Kt/V | 顯示結果 |
-| ---: | --- |
-| ≥ 1.4 | 達標 |
-| 1.2–< 1.4 | 接近目標 |
-| < 1.2 | 未達標 |
-
-上述門檻對應成人每週三次血液透析常用的處方目標與最低 delivered spKt/V；不同透析頻率、顯著殘餘腎功能或特殊臨床情境需採用不同評估方式。
+KoA 係數是本工具的簡化假設，不是特定廠牌的實測 KoA；廠商 in vitro KoA 通常高於實際 in vivo 值。
 
 ## 使用方式
 
@@ -97,7 +58,8 @@ python3 -m http.server 8000
 ├── .nojekyll   # 停用 GitHub Pages 的 Jekyll 處理
 ├── index.html  # 頁面結構、輸入欄位與結果區
 ├── styles.css  # 響應式版面與視覺樣式
-├── app.js      # 計算公式、輸入處理與狀態判讀
+├── app.js      # 計算核心（/*ENGINE-START*/…/*ENGINE-END*/）與畫面處理
+├── tests.cjs   # 計算核心測試：node tests.cjs
 └── README.md   # 專案說明
 ```
 
@@ -118,14 +80,19 @@ python3 -m http.server 8000
 - 心肺再循環與透析後尿素反彈
 - 血管通路再循環、針位與實際有效血流量
 - 治療中斷、凝血、人工腎臟效能衰減與透析液因素
-- 個別體液組成差異；固定以體重的 58% 估算 `V`
-- 殘餘腎功能與每週透析頻率
+- 個別體液組成差異（V 為公式估算）
+- 殘餘腎功能
 - 症狀、容量控制、血壓、電解質、營養及其他充分性指標
 
 正式品質監測應依標準採血流程計算 delivered spKt/V，並由透析照護團隊綜合病人狀況判讀。請勿在此工具輸入姓名、病歷號或其他可識別個人的醫療資訊。
 
 ## 參考資料
 
+- [KDOQI Clinical Practice Guideline for Hemodialysis Adequacy: 2015 Update. Am J Kidney Dis 2015](https://pubmed.ncbi.nlm.nih.gov/26498416/)
+- [Daugirdas JT. Second generation logarithmic estimates of single-pool variable volume Kt/V. J Am Soc Nephrol 1993](https://pubmed.ncbi.nlm.nih.gov/8305648/)
+- [Daugirdas JT et al. Standard Kt/V urea including fluid removal and residual kidney clearance. Kidney Int 2010](https://pubmed.ncbi.nlm.nih.gov/20107428/)
+- [Watson PE et al. Total body water volumes for adult males and females. Am J Clin Nutr 1980](https://pubmed.ncbi.nlm.nih.gov/6986753/)
+- [FHN Trial MOP ch.19：尿素動力學與通路別反彈校正](https://repository.niddk.nih.gov/public/study_document/Documents/MOP/Chapter19_Kinetic_Modeling_Noct_archive.pdf)
 - [National Kidney Foundation：KDOQI 2015 Hemodialysis Adequacy Guideline Update](https://www.kidney.org/news-stories/kdoqi-2015-hemodialysis-adequacy-guideline-update)
 - [KDOQI Clinical Practice Guideline for Hemodialysis Adequacy: 2015 Update](https://www.kidney.org/sites/default/files/KDOQI-Clinical-Practice-Guideline-Hemodialysis-Update_Public-Review-Draft-FINAL_20150204.pdf)
 - [National Kidney Foundation：Hemodialysis](https://www.kidney.org/kidney-topics/hemodialysis)
