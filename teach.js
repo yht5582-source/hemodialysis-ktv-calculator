@@ -1,7 +1,5 @@
 // 示範病例、考題、心智圖。所有數字由 tests.cjs 對照 KTV 計算核心。
 const TEACH = (() => {
-  // KDOQI 2015 Appendix：殘腎直接加在 stdKt/V 上（Kru mL/min，V L）
-  const kruTerm = (kru, vL) => (kru * 10080) / (vL * 1000);
   // DuBois：BSA = 0.007184 × W^0.425 × H^0.725
   const bsaDuBois = (weightKg, heightCm) => 0.007184 * weightKg ** 0.425 * heightCm ** 0.725;
   // KDOQI 2015 Appendix：SAstdKt/V = stdKt/V ÷ 20 × Vw/BSA
@@ -178,12 +176,12 @@ const TEACH = (() => {
       tag: "殘腎與排程",
       story:
         "70 歲女性，乾體重 55 kg、身高 155 cm，開始透析 4 個月，每日尿量約 1000 mL。每週兩次、每次 4 小時，Qb 280、1.6 m² 標準膜，Hct 32%，每次脫水 1 L。上個月測得殘腎尿素清除率 Kru 3 mL/min。",
-      rx: { ...RX, weight: 55, sex: "female", age: 70, height: 155, area: 1.6, efficiency: "standard", qb: 280, hct: 32, sessions: 2, ufPerSession: 1 },
+      rx: { ...RX, weight: 55, sex: "female", age: 70, height: 155, area: 1.6, efficiency: "standard", qb: 280, hct: 32, sessions: 2, ufPerSession: 1, kru: 3 },
       compare: [
-        { label: "只算透析（工具顯示值）", o: {} },
-        { label: "Kru 3 mL/min", o: {}, kru: 3 },
-        { label: "Kru 1.5 mL/min", o: {}, kru: 1.5 },
-        { label: "Kru 1 mL/min", o: {}, kru: 1 },
+        { label: "Kru 留空（只算透析）", o: { kru: null } },
+        { label: "Kru 3 mL/min", o: { kru: 3 } },
+        { label: "Kru 1.5 mL/min", o: { kru: 1.5 } },
+        { label: "Kru 1 mL/min", o: { kru: 1 } },
       ],
       steps: [
         {
@@ -191,8 +189,8 @@ const TEACH = (() => {
           a: "不行。每週兩次要看 stdKt/V（目標 2.3、最低 2.1），1.4 的目標只適用每週三次。",
         },
         {
-          q: "工具顯示 stdKt/V 1.69「未達標」，判讀對嗎？",
-          a: "還不完整。本工具未納入殘腎，而 KDOQI 3.3 要求計算要包含殘腎。Kru 項 = Kru × 10080/V = 3 × 10080/28000 = 1.08，合計約 2.76，高於 2.3。",
+          q: "Kru 留空時，工具顯示 stdKt/V 1.69「未達標」，判讀對嗎？",
+          a: "還不完整。留空時只算透析，而 KDOQI 3.3 要求計算要包含殘腎。Kru 項 = Kru × 10080/V = 3 × 10080/28000 = 1.08，合計約 2.76，高於 2.3。",
         },
         {
           q: "哪個情況會改變決定？",
@@ -552,7 +550,7 @@ const TEACH = (() => {
   };
   /*MAP-END*/
 
-  return { RX, CASES, QUIZ, MAP, kruTerm, bsaDuBois, saStd };
+  return { RX, CASES, QUIZ, MAP, bsaDuBois, saStd };
 })();
 if (typeof module !== "undefined") module.exports = TEACH;
 
@@ -577,12 +575,6 @@ if (typeof document !== "undefined") {
   /* ---------- 病例 ---------- */
   let currentCase = 0;
 
-  function rowCells(c, row) {
-    const r = KTV.prescribe({ ...c.rx, ...row.o });
-    const kruAdd = row.kru ? TEACH.kruTerm(row.kru, r.v) : null;
-    return { r, kruAdd };
-  }
-
   function caseStatus(c) {
     const r = KTV.prescribe(c.rx);
     const m = c.measured ? KTV.measured(c.measured) : null;
@@ -604,16 +596,16 @@ if (typeof document !== "undefined") {
 
   function compareTable(c) {
     if (!c.compare) return "";
-    const hasKru = c.compare.some((x) => x.kru);
+    const hasKru = c.compare.some((x) => "kru" in x.o);
     const hasSa = c.compare.some((x) => x.sa);
     const head = hasKru
       ? "<th>情境</th><th>stdKt/V（透析）</th><th>Kru 項</th><th>合計</th>"
       : `<th>情境</th><th>K</th><th>V</th><th>spKt/V</th><th>eKt/V</th><th>stdKt/V</th>${hasSa ? "<th>SAstdKt/V</th>" : ""}<th>脫水速率</th>`;
     const rows = c.compare
       .map((row) => {
-        const { r, kruAdd } = rowCells(c, row);
+        const r = KTV.prescribe({ ...c.rx, ...row.o });
         if (hasKru) {
-          return `<tr><th scope="row">${row.label}</th><td>${f2(r.std)}</td><td>${kruAdd ? f2(kruAdd) : "—"}</td><td><b>${f2(r.std + (kruAdd || 0))}</b></td></tr>`;
+          return `<tr><th scope="row">${row.label}</th><td>${f2(r.stdDialysis)}</td><td>${r.kruAdd ? f2(r.kruAdd) : "—"}</td><td><b>${f2(r.std)}</b></td></tr>`;
         }
         const sa = row.sa ? TEACH.saStd(r.std, r.v, TEACH.bsaDuBois(c.rx.weight, c.rx.height)) : null;
         return `<tr><th scope="row">${row.label}</th><td>${r.k.toFixed(0)}</td><td>${r.v.toFixed(1)}</td><td><b>${f2(r.sp)}</b></td><td>${f2(r.e)}</td><td>${f2(r.std)}</td>${hasSa ? `<td>${sa ? f2(sa) : "—"}</td>` : ""}<td>${r.ufr.toFixed(1)}</td></tr>`;

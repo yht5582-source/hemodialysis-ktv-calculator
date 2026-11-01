@@ -8,9 +8,9 @@
       name="description"
       content="依血液透析處方參數估算 spKt/V、eKt/V、stdKt/V，並以透析前後 BUN 計算實測 spKt/V 與 URR。"
     />
-    <link rel="stylesheet" href="styles.css?v=2.1" />
-    <script src="app.js?v=2.1" defer></script>
-    <script src="teach.js?v=2.1" defer></script>
+    <link rel="stylesheet" href="styles.css?v=2.2" />
+    <script src="app.js?v=2.2" defer></script>
+    <script src="teach.js?v=2.2" defer></script>
   </head>
   <body>
     <nav class="view-tabs" id="view-tabs" aria-label="頁面分頁">
@@ -144,6 +144,11 @@
               <input id="uf" min="0" max="6" step="0.1" type="number" inputmode="decimal" value="2" />
             </label>
           </div>
+
+          <label>
+            <span>殘腎尿素清除率 Kru mL/min（選填，3 個月內實測）</span>
+            <input id="kru" min="0" max="20" step="0.1" type="number" inputmode="decimal" placeholder="無尿或未測請留空" />
+          </label>
         </form>
       </section>
 
@@ -222,7 +227,7 @@
           <div class="metric">
             <span>eKt/V · stdKt/V</span>
             <strong><span id="ektv-value">--</span> · <span id="stdktv-value">--</span></strong>
-            <small>反彈校正 · 每週標準化</small>
+            <small id="stdktv-note">反彈校正 · 每週標準化</small>
           </div>
         </section>
 
@@ -253,7 +258,7 @@
             <h2>判讀基準</h2>
             <p>
               每週三次：單次 spKt/V 目標 1.4、最低 1.2（KDOQI 2015）。每週 2 次或 4 次以上：改看
-              stdKt/V，目標 2.3、最低 2.1。
+              stdKt/V，目標 2.3、最低 2.1，有填 Kru 時會計入殘腎。
             </p>
             <p>
               處方 spKt/V = K × t ÷ V，K 以血液水流量與逆流模型估算；未計入脫水的對流清除，通常比實測值略低
@@ -301,9 +306,9 @@
               <li>KoA 估算 = 膜面積 × 460（標準）／540（高效）／380（保守），為本頁簡化假設；廠商 in vitro KoA 通常高於實際 in vivo 值。</li>
               <li>V：體重 × 0.58；或 Watson（男 2.447 − 0.09516×年齡 + 0.1074×身高 + 0.3362×體重；女 −2.097 + 0.1069×身高 + 0.2466×體重）。</li>
               <li>eKt/V = spKt/V × t/(t + Tp)，Tp：AVF/AVG 30.7 分、導管 18.5 分（FHN 修正 Tattersall）。</li>
-              <li>stdKt/V：S = [10080 × (1 − e<sup>−eKt/V</sup>)/t] ÷ [(1 − e<sup>−eKt/V</sup>)/eKt/V + 10080/(N × t) − 1]，再除以 1 − (0.74/N) × (每週脫水/V)；未計殘腎。</li>
+              <li>stdKt/V：S = [10080 × (1 − e<sup>−eKt/V</sup>)/t] ÷ [(1 − e<sup>−eKt/V</sup>)/eKt/V + 10080/(N × t) − 1]，再除以 1 − (0.74/N) × (每週脫水/V)，最後加上 Kru × 10080/V（Kru 與 V 同用 mL）；Kru 留空則不計殘腎。</li>
               <li>實測 spKt/V（Daugirdas 第二代）= −ln(R − 0.008 × t) + (4 − 3.5R) × UF/W；URR = (1 − R) × 100%，最低 65%。</li>
-              <li>未納入：殘餘腎功能、通路與心肺再循環、治療中斷、凝血、人工腎臟重複使用衰減。</li>
+              <li>未納入：通路與心肺再循環、治療中斷、凝血、人工腎臟重複使用衰減。</li>
             </ul>
             <ul class="refs">
               <li><a href="https://pubmed.ncbi.nlm.nih.gov/26498416/" target="_blank" rel="noopener">KDOQI Clinical Practice Guideline for Hemodialysis Adequacy: 2015 Update. Am J Kidney Dis 2015;66:884–930</a></li>
@@ -316,7 +321,7 @@
         </section>
 
         <p class="disclaimer">
-          v2.1 · 所有計算在瀏覽器本機完成，不上傳資料。處方 Kt/V 為模型估算，不能取代實測 delivered spKt/V
+          v2.2 · 所有計算在瀏覽器本機完成，不上傳資料。處方 Kt/V 為模型估算，不能取代實測 delivered spKt/V
           與臨床判斷；請勿輸入可識別個人的資料。
         </p>
       </section>

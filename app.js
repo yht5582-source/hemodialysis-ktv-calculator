@@ -52,6 +52,11 @@ const KTV = (() => {
     return s / den;
   }
 
+  // KDOQI 2015 Appendix：殘腎直接加在 stdKt/V 上（Kru mL/min，V L）
+  function kruTerm(kru, volumeL) {
+    return (kru * 10080) / (volumeL * 1000);
+  }
+
   function status(value, target, minimum) {
     const v = round2(value);
     if (v >= target) return "good";
@@ -69,6 +74,7 @@ const KTV = (() => {
     if (!(Number.isInteger(p.sessions) && p.sessions >= 2 && p.sessions <= 7))
       errors.push("每週次數請輸入 2–7");
     if (!(p.ufPerSession >= 0 && p.ufPerSession <= 6)) errors.push("每次脫水量請輸入 0–6 L");
+    if (p.kru != null && !(p.kru >= 0 && p.kru <= 20)) errors.push("Kru 請輸入 0–20 mL/min，或留空");
     if (p.koaOverride != null) {
       if (!(p.koaOverride >= 200 && p.koaOverride <= 2500))
         errors.push("已知 KoA 請輸入 200–2500 mL/min");
@@ -102,8 +108,9 @@ const KTV = (() => {
     const kt = (k * minutes) / 1000;
     const sp = kt / v;
     const e = equilibrated(sp, minutes, p.access);
-    const std = standard(e, minutes, p.sessions, p.ufPerSession * p.sessions, v);
-    return { koa, qbw, k, v, kt, sp, e, std };
+    const stdDialysis = standard(e, minutes, p.sessions, p.ufPerSession * p.sessions, v);
+    const kruAdd = p.kru > 0 ? kruTerm(p.kru, v) : 0;
+    return { koa, qbw, k, v, kt, sp, e, stdDialysis, kruAdd, std: stdDialysis + kruAdd };
   }
 
   function solve(fn, target, lo, hi) {
@@ -143,6 +150,12 @@ const KTV = (() => {
     if (ufr > 13) warnings.push(`脫水速率約 ${ufr.toFixed(1)} mL/kg/h（>13），透析中低血壓風險上升。`);
     if (p.vMethod === "weight")
       warnings.push("V 以體重×0.58 估算：女性、高齡或肥胖者常高估 V、低估 Kt/V；可改用 Watson。");
+    if (p.kru > 0)
+      warnings.push(`Kru 已計入 stdKt/V（+${d.kruAdd.toFixed(2)}）：須為 3 個月內實測值；尿量驟變或住院後要重測。`);
+    if (thrice && p.kru >= 2)
+      warnings.push("Kru ≥2 mL/min：KDOQI 容許在定期測量下降低透析劑量，但未訂具體數值；此處仍以 spKt/V 1.4／1.2 判讀。");
+    if (!thrice && p.kru == null)
+      warnings.push("未填 Kru：stdKt/V 只計透析。KDOQI 3.3 的計算包含殘腎，有殘腎且已實測者請填入。");
     return {
       ok: true,
       ...d,
@@ -198,6 +211,7 @@ const KTV = (() => {
     watson,
     equilibrated,
     standard,
+    kruTerm,
     status,
     prescribe,
     measured,
@@ -268,6 +282,7 @@ if (typeof document !== "undefined") {
       sessions: num("sessions"),
       access: state.access,
       ufPerSession: num("uf") ?? 0,
+      kru: num("kru"),
     };
   }
 
@@ -327,6 +342,9 @@ if (typeof document !== "undefined") {
     $("ektv-value").textContent = fmt(r.e);
     $("sp-inline").textContent = fmt(r.sp);
     $("stdktv-value").textContent = fmt(r.std);
+    $("stdktv-note").textContent = r.kruAdd > 0
+      ? `反彈校正 · 透析 ${fmt(r.stdDialysis)} + Kru ${fmt(r.kruAdd)}`
+      : "反彈校正 · 每週標準化";
 
     const minutes = p.hours * 60;
     const reqMin = r.requiredHours * 60;
@@ -459,6 +477,7 @@ if (typeof document !== "undefined") {
       $("sessions").value = p.sessions;
       $("hct").value = p.hct;
       $("uf").value = p.ufPerSession;
+      $("kru").value = p.kru ?? "";
       $("bun-pre").value = m ? m.pre : "";
       $("bun-post").value = m ? m.post : "";
       $("m-time").value = m ? m.hours : "";

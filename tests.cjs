@@ -142,6 +142,31 @@ ok(!K.prescribe({ ...base, qb: NaN }).ok, "Qb 非數字 → 錯誤");
   ok(!urr64.urrOk, "URR 64% → 未達 65%");
 }
 
+// 殘腎 Kru
+{
+  const none = K.prescribe({ ...base, sessions: 2 });
+  const withKru = K.prescribe({ ...base, sessions: 2, kru: 3 });
+  near(withKru.kruAdd, (3 * 10080) / (none.v * 1000), 1e-9, "Kru 項 = Kru × 10080/V");
+  near(withKru.std, none.std + withKru.kruAdd, 1e-9, "stdKt/V 加上 Kru");
+  near(withKru.stdDialysis, none.std, 1e-9, "透析部分不變");
+  ok(none.kruAdd === 0 && K.prescribe({ ...base, sessions: 2, kru: 0 }).kruAdd === 0, "留空或 0 不加");
+  ok(withKru.value === withKru.std && withKru.value > none.value, "每週兩次判讀含 Kru");
+  ok(withKru.requiredHours < none.requiredHours, "含 Kru 所需時間較短");
+  const atReq = K.prescribe({ ...base, sessions: 2, kru: 1, hours: K.prescribe({ ...base, sessions: 2, kru: 1 }).requiredHours });
+  near(atReq.std, 2.295, 1e-6, "含 Kru 的 requiredHours 代回 = 2.295");
+  ok(none.warnings.some((w) => w.includes("未填 Kru")), "非每週三次未填 Kru 提示");
+  ok(!withKru.warnings.some((w) => w.includes("未填 Kru")), "已填不提示");
+  ok(withKru.warnings.some((w) => w.includes("3 個月內")), "已填提示實測時效");
+  const thrice = K.prescribe({ ...base, kru: 3 });
+  const plain = K.prescribe(base);
+  ok(thrice.metric === "sp" && thrice.value === plain.value && thrice.status === plain.status, "每週三次判讀不受 Kru 影響");
+  ok(thrice.std > plain.std, "每週三次顯示的 stdKt/V 含 Kru");
+  ok(thrice.warnings.some((w) => w.includes("Kru ≥2")), "每週三次 Kru ≥2 提示");
+  ok(!K.prescribe({ ...base, kru: 1.5 }).warnings.some((w) => w.includes("Kru ≥2")), "Kru <2 不提示");
+  ok(!plain.warnings.some((w) => w.includes("Kru")), "每週三次未填不提示");
+  ok(!K.prescribe({ ...base, kru: 21 }).ok && !K.prescribe({ ...base, kru: -1 }).ok && !K.prescribe({ ...base, kru: NaN }).ok, "Kru 超出範圍 → 錯誤");
+}
+
 // 教學內容：文字中的數字要與計算核心一致
 {
   const T = require("./teach.js");
@@ -210,12 +235,13 @@ ok(!K.prescribe({ ...base, qb: NaN }).ok, "Qb 非數字 → 錯誤");
   has("c4", c4fix.urr.toFixed(1), "複測 URR");
 
   // 病例 5：Kru
-  const c5 = rx("c5");
+  const c5 = rx("c5", { kru: null });
   ok(c5.metric === "std" && c5.status === "risk", "c5 未計殘腎未達標");
+  ok(rx("c5").status === "good", "c5 含 Kru 3 達標");
   has("c5", f(c5.sp), "sp");
   has("c5", f(c5.std), "std");
-  const add = (kru) => c5.std + T.kruTerm(kru, c5.v);
-  near(T.kruTerm(3, 28), 1.08, 0.005, "Kru 項");
+  const add = (kru) => rx("c5", { kru }).std;
+  near(K.kruTerm(3, 28), 1.08, 0.005, "Kru 項");
   has("c5", f(add(3)), "Kru 3");
   has("c5", f(add(1.5)), "Kru 1.5");
   has("c5", f(add(1)), "Kru 1");
@@ -253,7 +279,7 @@ ok(!K.prescribe({ ...base, qb: NaN }).ok, "Qb 非數字 → 錯誤");
   ok(T.QUIZ[6].why.includes(f(q7t.sp)) && T.QUIZ[6].why.includes(f(q7d.sp)) && q7d.sp < q7t.sp, "Q7 稀釋低估");
   ok(correct(8).includes("時間"), "Q9 時間");
   [levers.h, levers.qb, levers.a, levers.qd].forEach((v) => ok(T.QUIZ[8].why.includes(f(v)), `Q9 解析含 ${f(v)}`));
-  ok(correct(10) === f(T.kruTerm(3, 28)), "Q11 Kru");
+  ok(correct(10) === f(K.kruTerm(3, 28)), "Q11 Kru");
   ok(correct(14) === (T.saStd(2.43, 25.3, 1.38)).toFixed(1), "Q15 SAstdKt/V");
   ok(T.QUIZ[15].why.includes(f(c4act.sp)), "Q16 實際值");
   const q17 = K.measured({ pre: 70, post: 16, hours: 4, uf: 2, weight: 65, access: "av" });
