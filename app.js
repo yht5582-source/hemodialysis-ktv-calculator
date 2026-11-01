@@ -434,6 +434,40 @@ if (typeof document !== "undefined") {
     renderAll();
   });
 
+  // 示範病例「帶入計算工具」
+  window.KTVUI = {
+    load(p, m) {
+      state.vMethod = p.vMethod;
+      state.access = p.access;
+      state.sex = p.sex;
+      state.efficiency = p.efficiency;
+      segments.forEach(([groupId, key]) => selectSegment(groupId, key, state[key]));
+      $("watson-fields").hidden = state.vMethod !== "watson";
+      $("weight").value = p.weight;
+      $("age").value = p.age;
+      $("height").value = p.height;
+      $("surface-area").value = p.area;
+      $("dialyzer").value = `人工腎臟 ${p.area} m²`;
+      autoName = true;
+      document.querySelectorAll(".preset-grid button").forEach((b) => {
+        b.classList.toggle("selected", b.dataset.area === String(p.area));
+      });
+      $("koa").value = "";
+      $("blood-flow").value = p.qb;
+      $("dialysate-flow").value = p.qd;
+      $("dialysis-time").value = p.hours;
+      $("sessions").value = p.sessions;
+      $("hct").value = p.hct;
+      $("uf").value = p.ufPerSession;
+      $("bun-pre").value = m ? m.pre : "";
+      $("bun-post").value = m ? m.post : "";
+      $("m-time").value = m ? m.hours : "";
+      $("m-uf").value = m ? m.uf : "";
+      $("m-weight").value = m ? m.weight : "";
+      renderAll();
+    },
+  };
+
   segments.forEach(([groupId, key]) => selectSegment(groupId, key, state[key]));
   renderAll();
 }

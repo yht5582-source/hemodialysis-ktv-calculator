@@ -15,6 +15,9 @@
 - **達標差距**：達目標所需時間、目前時間下所需 Qb。
 - **實測 spKt/V**：輸入透析前後 BUN、時間、脫水量、透析後體重，以 Daugirdas 第二代公式計算 spKt/V、URR、eKt/V。
 - 提示：Qb > Qd、導管高血流、脫水速率 >13 mL/kg/h、以體重法估算 V。
+- **示範病例 6 例**（`#cases`）：判讀、調整處方、體型與性別、排查差距、殘腎與排程、脫水速率；可一鍵帶入計算工具。
+- **考題 20 題**（`#quiz`）：基礎 10 題、高階 10 題，選答後立即顯示解析與來源，不儲存作答紀錄。
+- **心智圖**（`#map`）：公式、目標、採血、特殊族群、排查、調整、殘腎、Kt/V 以外的考量。
 - 所有計算都在瀏覽器本機完成，不會將輸入資料傳送至伺服器。
 
 ## 計算方式
@@ -59,7 +62,8 @@ python3 -m http.server 8000
 ├── index.html  # 頁面結構、輸入欄位與結果區
 ├── styles.css  # 響應式版面與視覺樣式
 ├── app.js      # 計算核心（/*ENGINE-START*/…/*ENGINE-END*/）與畫面處理
-├── tests.cjs   # 計算核心測試：node tests.cjs
+├── teach.js    # 示範病例、考題、心智圖（/*CASES-START*/、/*QUIZ-START*/、/*MAP-START*/）
+├── tests.cjs   # 計算核心與教學內容數字測試：node tests.cjs
 └── README.md   # 專案說明
 ```
 
@@ -96,6 +100,11 @@ python3 -m http.server 8000
 - [National Kidney Foundation：KDOQI 2015 Hemodialysis Adequacy Guideline Update](https://www.kidney.org/news-stories/kdoqi-2015-hemodialysis-adequacy-guideline-update)
 - [KDOQI Clinical Practice Guideline for Hemodialysis Adequacy: 2015 Update](https://www.kidney.org/sites/default/files/KDOQI-Clinical-Practice-Guideline-Hemodialysis-Update_Public-Review-Draft-FINAL_20150204.pdf)
 - [National Kidney Foundation：Hemodialysis](https://www.kidney.org/kidney-topics/hemodialysis)
+- [Eknoyan G et al.（HEMO）N Engl J Med 2002](https://pubmed.ncbi.nlm.nih.gov/12490682/)
+- [Depner T et al.（HEMO：性別與體型）Kidney Int 2004](https://pubmed.ncbi.nlm.nih.gov/15086479/)
+- [FHN Trial Group（Chertow）N Engl J Med 2010](https://pubmed.ncbi.nlm.nih.gov/21091062/)
+- [Flythe JE et al.（脫水速率）Kidney Int 2011](https://pubmed.ncbi.nlm.nih.gov/20927040/)
+- [Dember LM et al.（TiME）J Am Soc Nephrol 2019](https://pubmed.ncbi.nlm.nih.gov/31000566/)
 
 ## 授權
 

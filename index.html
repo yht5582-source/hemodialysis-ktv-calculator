@@ -8,11 +8,19 @@
       name="description"
       content="依血液透析處方參數估算 spKt/V、eKt/V、stdKt/V，並以透析前後 BUN 計算實測 spKt/V 與 URR。"
     />
-    <link rel="stylesheet" href="styles.css?v=2.0" />
-    <script src="app.js?v=2.0" defer></script>
+    <link rel="stylesheet" href="styles.css?v=2.1" />
+    <script src="app.js?v=2.1" defer></script>
+    <script src="teach.js?v=2.1" defer></script>
   </head>
   <body>
-    <main class="shell">
+    <nav class="view-tabs" id="view-tabs" aria-label="頁面分頁">
+      <a id="tab-tool" class="selected" href="#tool" data-view="tool">計算工具</a>
+      <a id="tab-cases" href="#cases" data-view="cases">示範病例 6</a>
+      <a id="tab-quiz" href="#quiz" data-view="quiz">考題 20</a>
+      <a id="tab-map" href="#map" data-view="map">心智圖</a>
+    </nav>
+
+    <main class="shell" id="view-tool">
       <section class="input-panel" aria-labelledby="page-title">
         <div class="panel-head">
           <div>
@@ -308,10 +316,67 @@
         </section>
 
         <p class="disclaimer">
-          v2.0 · 所有計算在瀏覽器本機完成，不上傳資料。處方 Kt/V 為模型估算，不能取代實測 delivered spKt/V
+          v2.1 · 所有計算在瀏覽器本機完成，不上傳資料。處方 Kt/V 為模型估算，不能取代實測 delivered spKt/V
           與臨床判斷；請勿輸入可識別個人的資料。
         </p>
       </section>
     </main>
+
+    <section class="teach-view" id="view-cases" aria-labelledby="cases-title" hidden>
+      <div class="teach-head">
+        <p class="eyebrow">教學</p>
+        <h1 id="cases-title">示範病例</h1>
+        <p>6 個虛構教學病例。數值由本頁計算核心即時算出；按「帶入計算工具」可自行調整參數。</p>
+      </div>
+      <div class="case-picker" id="case-picker"></div>
+      <article class="teach-card" id="case-body"></article>
+    </section>
+
+    <section class="teach-view" id="view-quiz" aria-labelledby="quiz-title" hidden>
+      <div class="teach-head">
+        <p class="eyebrow">教學</p>
+        <h1 id="quiz-title">考題</h1>
+        <p>基礎 10 題、高階 10 題，選答後立即顯示解析。作答紀錄不會儲存。</p>
+      </div>
+      <div class="quiz-bar">
+        <div class="segment-grid" id="quiz-filter">
+          <button type="button" data-level="全部">全部</button>
+          <button type="button" data-level="基礎">基礎</button>
+          <button type="button" data-level="高階">高階</button>
+        </div>
+        <strong id="quiz-score" aria-live="polite"></strong>
+        <button class="ghost-button" id="quiz-reset" type="button">重新作答</button>
+      </div>
+      <p class="quiz-final" id="quiz-final" hidden></p>
+      <div class="quiz-list" id="quiz-list"></div>
+    </section>
+
+    <section class="teach-view" id="view-map" aria-labelledby="map-title" hidden>
+      <div class="teach-head">
+        <p class="eyebrow">教學</p>
+        <h1 id="map-title">心智圖</h1>
+        <p>從公式、目標與採血，一路到排查、調整與 Kt/V 以外的考量。</p>
+        <div class="mm-actions">
+          <button class="ghost-button" id="mm-open" type="button">全部展開</button>
+          <button class="ghost-button" id="mm-close" type="button">全部收合</button>
+        </div>
+      </div>
+      <div class="mindmap">
+        <div class="mm-side mm-side-left" id="mm-left"></div>
+        <div class="mm-center"><strong>血液透析充分性</strong><span>Kt/V</span></div>
+        <div class="mm-side mm-side-right" id="mm-right"></div>
+      </div>
+      <section class="info-panel teach-refs">
+        <h2>教學內容參考資料</h2>
+        <ul>
+          <li><a href="https://www.ajkd.org/article/S0272-6386(15)01019-7/fulltext" target="_blank" rel="noopener">KDOQI Clinical Practice Guideline for Hemodialysis Adequacy: 2015 Update. Am J Kidney Dis 2015</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/12490682/" target="_blank" rel="noopener">Eknoyan G et al.（HEMO）N Engl J Med 2002</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/15086479/" target="_blank" rel="noopener">Depner T et al.（HEMO：性別與體型）Kidney Int 2004</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/21091062/" target="_blank" rel="noopener">FHN Trial Group（Chertow）N Engl J Med 2010</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/20927040/" target="_blank" rel="noopener">Flythe JE et al.（脫水速率）Kidney Int 2011</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/31000566/" target="_blank" rel="noopener">Dember LM et al.（TiME）J Am Soc Nephrol 2019</a></li>
+        </ul>
+      </section>
+    </section>
   </body>
 </html>

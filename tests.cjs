@@ -142,5 +142,130 @@ ok(!K.prescribe({ ...base, qb: NaN }).ok, "Qb 非數字 → 錯誤");
   ok(!urr64.urrOk, "URR 64% → 未達 65%");
 }
 
+// 教學內容：文字中的數字要與計算核心一致
+{
+  const T = require("./teach.js");
+  const byId = Object.fromEntries(T.CASES.map((c) => [c.id, c]));
+  const text = (c) => JSON.stringify([c.title, c.story, c.steps, c.points]);
+  const has = (id, val, name) => ok(text(byId[id]).includes(val), `${id} 含 ${val}（${name}）`);
+  const rx = (id, o = {}) => K.prescribe({ ...byId[id].rx, ...o });
+  const f = (x) => x.toFixed(2);
+
+  ok(T.CASES.length === 6, "病例 6 例");
+  T.CASES.forEach((c) => {
+    ok(K.prescribe(c.rx).ok, `${c.id} 處方可計算`);
+    ok(c.steps.length >= 3 && c.points.length >= 3 && c.src, `${c.id} 內容完整`);
+    if (c.measured) ok(K.measured(c.measured).ok, `${c.id} 實測可計算`);
+    (c.compare || []).forEach((row) => ok(K.prescribe({ ...c.rx, ...row.o }).ok, `${c.id} 比較列 ${row.label}`));
+  });
+
+  // 病例 1
+  const c1m = K.measured(byId.c1.measured);
+  has("c1", f(c1m.sp), "實測");
+  has("c1", c1m.urr.toFixed(1), "URR");
+  ok(c1m.status === "good", "c1 實測達標");
+  has("c1", f(rx("c1").sp), "處方");
+  has("c1", String(Math.round(rx("c1").requiredHours * 60)), "達標時間");
+  has("c1", rx("c1").ufr.toFixed(1), "目前 UFR");
+  has("c1", K.prescribe({ ...byId.c1.rx, hours: 215 / 60 }).ufr.toFixed(1), "縮時 UFR");
+
+  // 病例 2：單一調整
+  has("c2", f(rx("c2").sp), "基線");
+  ok(rx("c2").status === "risk", "c2 基線未達最低");
+  const levers = { h: rx("c2", { hours: 5 }).sp, qb: rx("c2", { qb: 450 }).sp, qd: rx("c2", { qd: 800 }).sp, a: rx("c2", { area: 2.1 }).sp };
+  has("c2", f(levers.h), "5 h");
+  has("c2", f(levers.qb), "Qb 450");
+  has("c2", f(levers.qd), "Qd 800");
+  has("c2", f(levers.a), "2.1 m²");
+  ok(levers.h === Math.max(...Object.values(levers)), "c2 時間效果最大");
+  ok(levers.qd < 1.395 && levers.a < 1.395, "c2 Qd、膜面積單獨未達標");
+  has("c2", f(rx("c2", { qb: 400, hours: 4.5, area: 2.1 }).sp), "組合");
+  has("c2", rx("c2").v.toFixed(1), "V");
+
+  // 病例 3：體型與 SAstdKt/V
+  const c3W = rx("c3");
+  const c3w = rx("c3", { vMethod: "weight" });
+  has("c3", c3w.v.toFixed(1), "體重法 V");
+  has("c3", c3W.v.toFixed(1), "Watson V");
+  has("c3", f(c3w.sp), "體重法 sp");
+  has("c3", f(c3W.sp), "Watson sp");
+  has("c3", f(c3W.std), "std");
+  const bsa = T.bsaDuBois(46, 150);
+  near(bsa, 1.38, 0.005, "c3 BSA");
+  has("c3", (c3W.v / bsa).toFixed(1), "V/BSA");
+  const sa = T.saStd(c3W.std, c3W.v, bsa);
+  has("c3", f(sa), "SAstdKt/V");
+  ok(sa < 2.3 && c3W.std > 2.3, "c3 校正後低於 2.3");
+
+  // 病例 4：處方與實際
+  has("c4", f(rx("c4").sp), "處方");
+  const c4act = rx("c4", { qb: 250, hours: 3.5 });
+  has("c4", f(c4act.sp), "實際");
+  const c4m = K.measured(byId.c4.measured);
+  has("c4", f(c4m.sp), "實測");
+  ok(T.CASES[3].title.includes(f(c4m.sp)) && T.CASES[3].title.includes(f(rx("c4").sp)), "c4 標題數字");
+  near(c4act.sp - c4m.sp, 0.05, 0.01, "c4 剩餘差距");
+  const c4fix = K.measured({ pre: 66, post: 18, hours: 4, uf: 2, weight: 68, access: "catheter" });
+  has("c4", f(c4fix.sp), "複測");
+  has("c4", c4fix.urr.toFixed(1), "複測 URR");
+
+  // 病例 5：Kru
+  const c5 = rx("c5");
+  ok(c5.metric === "std" && c5.status === "risk", "c5 未計殘腎未達標");
+  has("c5", f(c5.sp), "sp");
+  has("c5", f(c5.std), "std");
+  const add = (kru) => c5.std + T.kruTerm(kru, c5.v);
+  near(T.kruTerm(3, 28), 1.08, 0.005, "Kru 項");
+  has("c5", f(add(3)), "Kru 3");
+  has("c5", f(add(1.5)), "Kru 1.5");
+  has("c5", f(add(1)), "Kru 1");
+  ok(add(3) > 2.3 && add(1.5) < 2.3 && add(1.5) > 2.1 && add(1) < 2.1, "c5 Kru 分級");
+
+  // 病例 6：脫水速率
+  has("c6", f(rx("c6").sp), "sp");
+  has("c6", rx("c6").ufr.toFixed(1), "UFR");
+  ok(rx("c6").ufr > 13, "c6 UFR >13");
+  const c65 = rx("c6", { hours: 5 }).ufr;
+  const c6u = rx("c6", { ufPerSession: 3 }).ufr;
+  const c6x = rx("c6", { sessions: 4, ufPerSession: 2.7 }).ufr;
+  has("c6", c65.toFixed(1), "5 h UFR");
+  has("c6", c6u.toFixed(1), "3 L UFR");
+  has("c6", c6x.toFixed(1), "每週四次 UFR");
+  ok(c65 < 13 && c6u < 13 && c6x < 13, "c6 調整後 ≤13");
+
+  // 考題
+  ok(T.QUIZ.length === 20, "考題 20 題");
+  ok(T.QUIZ.filter((q) => q.level === "基礎").length === 10, "基礎 10 題");
+  ok(T.QUIZ.filter((q) => q.level === "高階").length === 10, "高階 10 題");
+  [0, 1, 2, 3].forEach((i) => ok(T.QUIZ.filter((q) => q.a === i).length === 5, `答案 ${"ABCD"[i]} 各 5 題`));
+  T.QUIZ.forEach((q, i) => {
+    ok(q.o.length === 4 && new Set(q.o).size === 4, `第 ${i + 1} 題 4 個不同選項`);
+    ok(q.q && q.why && q.src && q.a >= 0 && q.a < 4, `第 ${i + 1} 題完整`);
+  });
+  const correct = (i) => T.QUIZ[i].o[T.QUIZ[i].a];
+  ok(correct(3) === "70%", "Q4 URR");
+  near((1 - 21 / 70) * 100, 70, 1e-9, "Q4 計算");
+  const q5 = K.measured({ pre: 70, post: 20, hours: 4, uf: 2, weight: 70, access: "av" });
+  ok(correct(4) === f(q5.sp), "Q5 Daugirdas");
+  ok(T.QUIZ[4].o.includes(f(-Math.log(20 / 70 - 0.032))), "Q5 漏脫水項的誘答");
+  const q7t = K.measured({ pre: 70, post: 22, hours: 4, uf: 2, weight: 65, access: "av" });
+  const q7d = K.measured({ pre: 55, post: 22, hours: 4, uf: 2, weight: 65, access: "av" });
+  ok(T.QUIZ[6].why.includes(f(q7t.sp)) && T.QUIZ[6].why.includes(f(q7d.sp)) && q7d.sp < q7t.sp, "Q7 稀釋低估");
+  ok(correct(8).includes("時間"), "Q9 時間");
+  [levers.h, levers.qb, levers.a, levers.qd].forEach((v) => ok(T.QUIZ[8].why.includes(f(v)), `Q9 解析含 ${f(v)}`));
+  ok(correct(10) === f(T.kruTerm(3, 28)), "Q11 Kru");
+  ok(correct(14) === (T.saStd(2.43, 25.3, 1.38)).toFixed(1), "Q15 SAstdKt/V");
+  ok(T.QUIZ[15].why.includes(f(c4act.sp)), "Q16 實際值");
+  const q17 = K.measured({ pre: 70, post: 16, hours: 4, uf: 2, weight: 65, access: "av" });
+  ok(T.QUIZ[16].why.includes(f(q7t.sp)) && T.QUIZ[16].why.includes(f(q17.sp)) && q17.sp > q7t.sp, "Q17 再循環高估");
+  const q18 = K.prescribe({ ...base, sessions: 6, hours: 2.5, qb: 350, ufPerSession: 1 });
+  ok(T.QUIZ[17].q.includes(f(q18.sp)) && T.QUIZ[17].q.includes(f(q18.std)) && q18.status === "good", "Q18 頻繁透析");
+  ok(correct(19).includes(rx("c6").ufr.toFixed(1)) && T.QUIZ[19].q.includes(f(rx("c6").sp)), "Q20 UFR");
+  ok(T.QUIZ[19].why.includes(c65.toFixed(1)), "Q20 延時 UFR");
+
+  ok(T.MAP.left.length + T.MAP.right.length === 8, "心智圖 8 分支");
+  [...T.MAP.left, ...T.MAP.right].forEach((b) => ok(b.leaves.length >= 3, `分支 ${b.title} 有內容`));
+}
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
