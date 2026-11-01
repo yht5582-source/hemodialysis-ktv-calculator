@@ -150,6 +150,11 @@ const KTV = (() => {
     if (ufr > 13) warnings.push(`脫水速率約 ${ufr.toFixed(1)} mL/kg/h（>13），透析中低血壓風險上升。`);
     if (p.vMethod === "weight")
       warnings.push("V 以體重×0.58 估算：女性、高齡或肥胖者常高估 V、低估 Kt/V；可改用 Watson。");
+    if (requiredHours < 3)
+      warnings.push(
+        `達標所需時間僅約 ${Math.round(requiredHours * 60)} 分鐘（<3 小時）：這只反映小分子清除，不是縮時或降血流的建議。時間仍要依容量、血壓與磷鉀決定；KDOQI 建議低殘腎（<2 mL/min）每週三次至少 3 小時。` +
+          (!thrice && d.kruAdd > 0 ? "此數字含殘腎貢獻，Kru 下降就可能不足。" : "")
+      );
     if (p.kru > 0)
       warnings.push(`Kru 已計入 stdKt/V（+${d.kruAdd.toFixed(2)}）：須為 3 個月內實測值；尿量驟變或住院後要重測。`);
     if (thrice && p.kru >= 2)

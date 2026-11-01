@@ -167,6 +167,22 @@ ok(!K.prescribe({ ...base, qb: NaN }).ok, "Qb 非數字 → 錯誤");
   ok(!K.prescribe({ ...base, kru: 21 }).ok && !K.prescribe({ ...base, kru: -1 }).ok && !K.prescribe({ ...base, kru: NaN }).ok, "Kru 超出範圍 → 錯誤");
 }
 
+// 達標時間過短提醒
+{
+  const short = (w) => w.includes("達標所需時間僅");
+  const small = { ...base, weight: 50, qb: 350 };
+  const r = K.prescribe(small);
+  ok(r.requiredHours < 3 && r.warnings.some(short), "所需時間 <3 小時 → 提醒");
+  ok(r.warnings.find(short).includes(`${Math.round(r.requiredHours * 60)} 分鐘`), "提醒顯示分鐘數");
+  ok(!r.warnings.find(short).includes("Kru 下降"), "未計 Kru 不提 Kru 下降");
+  ok(K.prescribe(base).requiredHours >= 3 && !K.prescribe(base).warnings.some(short), "所需時間 ≥3 小時不提醒");
+  ok(!K.prescribe({ ...base, sessions: 2 }).warnings.some(short), "達不到目標（Infinity）不提醒");
+  const twice = K.prescribe({ ...small, sessions: 2, kru: 5 });
+  ok(twice.requiredHours < 3 && twice.warnings.find(short).includes("Kru 下降"), "每週兩次含 Kru → 提醒依賴殘腎");
+  const thriceKru = K.prescribe({ ...small, kru: 5 });
+  ok(thriceKru.warnings.some(short) && !thriceKru.warnings.find(short).includes("Kru 下降"), "每週三次判讀不含 Kru");
+}
+
 // 教學內容：文字中的數字要與計算核心一致
 {
   const T = require("./teach.js");
